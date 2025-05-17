@@ -7,7 +7,9 @@ from loguru import logger
 from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy import text
+from sqlalchemy.future import select
 from dotenv import load_dotenv
+from .models import Product
 
 load_dotenv()
 logger.add("logs.log", rotation="500 KB", level="INFO")
@@ -31,17 +33,16 @@ AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 async def fetch_product(product_id: int, db:AsyncSession):
     result = await db.execute(
-        text("SELECT id, name, price, description FROM productapp_product WHERE id = :id"),
-        {"id": product_id}
+        select(Product).where(Product.id == product_id)
     )
-    row = result.fetchone()
+    product = result.scalars().first()
 
-    if row:
+    if product:
         return {
-            "id": row[0],
-            "name": row[1],
-            "price": float(row[2]),
-            "description": row[3]
+            "id": product.id,
+            "name": product.name,
+            "price": float(product.price),
+            "description": product.description,
         }
     return None
 
@@ -52,7 +53,7 @@ async def startup_event():
 
 async def start_kafka_consumer():
     consumer = None
-    while True:
+    for _ in (3):
         try:
             consumer = KafkaConsumer(
                 'product_request',
@@ -69,7 +70,7 @@ async def start_kafka_consumer():
 
     loop = asyncio.get_event_loop()
 
-    while True:
+    for _ in (3):
         records = await loop.run_in_executor(None, consumer.poll, 1.0)
         for tp, messages in records.items():
             for message in messages:
@@ -111,3 +112,5 @@ async def handle_message(message):
         logger.info(f"Товар {product_id} сохранён в Redis")
     else:
         logger.warning(f"Товар {product_id} не найден в базе данных")
+
+
