@@ -25,7 +25,7 @@ async def startup_event():
 
 async def start_kafka_consumer():
     consumer = None
-    for _ in (3):
+    for _ in range(3):
         try:
             consumer = KafkaConsumer(
                 'product_request',
@@ -42,7 +42,7 @@ async def start_kafka_consumer():
 
     loop = asyncio.get_event_loop()
 
-    for _ in (3):
+    for _ in range(3):
         records = await loop.run_in_executor(None, consumer.poll, 1.0)
         for tp, messages in records.items():
             for message in messages:
