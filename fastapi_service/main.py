@@ -1,4 +1,3 @@
-import os
 import json
 import asyncio
 import redis.asyncio as redis
@@ -10,6 +9,7 @@ from sqlalchemy import text
 from sqlalchemy.future import select
 from dotenv import load_dotenv
 from .models import Product
+from .settings import settings
 
 load_dotenv()
 logger.add("logs.log", rotation="500 KB", level="INFO")
@@ -17,14 +17,14 @@ logger.add("logs.log", rotation="500 KB", level="INFO")
 app = FastAPI()
 
 redis_client = redis.Redis(
-    host=os.getenv("REDIS_HOST", "redis",),
-    port=int(os.getenv("REDIS_PORT", 6379)), 
+    host= settings.REDIS_HOST,
+    port= settings.REDIS_PORT,
     decode_responses=True,
 )
 
 DATABASE_URL = (
-    f"postgresql+asyncpg://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
-    f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+    f"postgresql+asyncpg://{settings.DB_USER}:{settings.DB_PASSWORD}"
+    f"@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
 )
 
 engine = create_async_engine(DATABASE_URL, echo=False)
@@ -57,7 +57,7 @@ async def start_kafka_consumer():
         try:
             consumer = KafkaConsumer(
                 'product_request',
-                bootstrap_servers=os.getenv("KAFKA_BOOTSTRAP", "kafka:9092"),
+                bootstrap_servers=settings.KAFKA_BOOTSTRAP,
                 group_id='fastapi-group',
                 value_deserializer=lambda x: x.decode('utf-8'),
                 auto_offset_reset="earliest",
